@@ -6,6 +6,24 @@
 
 Core.UI = {}
 
+-- --- NOTIFICATION ---
+Core.UI.Notify = function(msg, type, duration)
+    if GetResourceState('ox_lib') == 'started' then
+        exports.ox_lib:notify({
+            title = 'System',
+            description = msg,
+            type = type or 'info',
+            duration = duration or 5000
+        })
+    elseif GetResourceState('qb-core') == 'started' then
+        exports['qb-core']:GetCoreObject().Functions.Notify(msg, type or 'primary', duration)
+    elseif GetResourceState('es_extended') == 'started' then
+        exports['es_extended']:getSharedObject().ShowNotification(msg, type, duration)
+    else
+        TriggerEvent('chat:addMessage', { args = { "System", msg } })
+    end
+end
+
 -- --- PROGRESS BAR ---
 Core.UI.ProgressBar = function(name, label, duration, options, anim, prop, done, cancel)
     if GetResourceState('qb-core') == 'started' then

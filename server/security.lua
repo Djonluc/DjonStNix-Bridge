@@ -133,7 +133,11 @@ function InternalRegisterCommand(name, permission, cb, help, params)
     local framework = GetFramework()
     if framework == 'qb' then
         local QBCore = exports['qb-core']:GetCoreObject()
-        QBCore.Commands.Add(name, help or "No Description", params or {}, true, cb, permission or "admin")
+        if type(permission) == 'table' then
+            QBCore.Commands.Add(name, help or "No Description", params or {}, false, cb, table.unpack(permission))
+        else
+            QBCore.Commands.Add(name, help or "No Description", params or {}, false, cb, permission or "admin")
+        end
     elseif framework == 'esx' then
         local ESX = exports['es_extended']:getSharedObject()
         ESX.RegisterCommand(name, permission or "admin", cb, true, {help = help, arguments = params})

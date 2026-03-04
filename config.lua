@@ -21,6 +21,21 @@ Config.Inventory = "auto"
 -- Options: "auto", "ox", "qb", "none"
 Config.Target = "auto"
 
+-- Economy Settings (Universal)
+Config.Economy = {
+    -- Progressive Taxation System
+    -- Scans a player's total liquid wealth (cash + bank) to determine their tax bracket.
+    ProgressiveTax = {
+        Enabled = true,        -- If true, overrides static tax rates in other scripts
+        Brackets = {
+            { minWealth = 250000000, rate = 0.15 }, -- $2.5M+: 15% Tax (Ultra-Wealthy)
+            { minWealth = 50000000,  rate = 0.12 }, -- $500k+: 12% Tax
+            { minWealth = 20000000,  rate = 0.08 }, -- $200k+: 8% Tax
+            { minWealth = 0,         rate = 0.05 }  -- $0+: 5% Tax (Base/Poverty)
+        }
+    }
+}
+
 -- Logging Settings
 Config.Logging = {
     Enable = true,

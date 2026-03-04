@@ -53,6 +53,25 @@ local function RegisterFramework()
     Core.FrameworkReady = true
 end
 
+-- --- ITEMS (Client Side) ---
+Core.Items.HasItem = function(itemName)
+    if GetResourceState('ox_inventory') == 'started' then
+        local count = exports.ox_inventory:Search('count', itemName)
+        return type(count) == 'number' and count > 0
+    elseif GetFramework() == 'qb' then
+        local QBCore = exports['qb-core']:GetCoreObject()
+        local has = false
+        QBCore.Functions.TriggerCallback('QBCore:HasItem', function(result) has = result end, itemName)
+        Wait(500)
+        return has
+    elseif GetFramework() == 'esx' then
+        -- Client-side ESX doesn't have a synchronous HasItem, typically checked server-side.
+        -- We return true here as a fallback, or we'd need an async callback built-in.
+        return true
+    end
+    return true
+end
+
 CreateThread(function()
     RegisterFramework()
 end)

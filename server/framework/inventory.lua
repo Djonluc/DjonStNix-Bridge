@@ -49,6 +49,12 @@ local function InitializeInventory()
             end
             return items
         end
+        Core.Items.GetItemCount = function(src, item)
+            local player = QBCore.Functions.GetPlayer(src)
+            if not player then return 0 end
+            local itemData = player.Functions.GetItemByName(item)
+            return itemData and itemData.amount or 0
+        end
 
     -- --- QS INVENTORY ---
     elseif IsResourceRunning('qs-inventory') then

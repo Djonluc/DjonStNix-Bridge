@@ -85,6 +85,11 @@ local function InitializeESX()
         return acc and acc.money or 0
     end
 
+    -- --- UI ---
+    Core.UI.Notify = function(src, message, type)
+        TriggerClientEvent('esx:showNotification', src, message)
+    end
+
     -- --- ITEMS ---
     Core.Items.AddItem = function(src, item, amount, metadata)
         local player = ESX.GetPlayerFromId(src)

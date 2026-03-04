@@ -26,6 +26,11 @@ local function InitializeQB()
         return player and player.PlayerData.citizenid or nil
     end
 
+    Core.Player.GetSourceFromIdentifier = function(identifier)
+        local player = QBCore.Functions.GetPlayerByCitizenId(identifier)
+        return player and player.PlayerData.source or nil
+    end
+
     Core.Player.GetName = function(src)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return "Unknown" end
@@ -66,6 +71,11 @@ local function InitializeQB()
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return 0 end
         return player.PlayerData.money[account or 'bank'] or 0
+    end
+
+    -- --- UI ---
+    Core.UI.Notify = function(src, message, type)
+        TriggerClientEvent('QBCore:Notify', src, message, type)
     end
 
     -- --- ITEMS ---
@@ -139,6 +149,30 @@ local function InitializeQB()
 
     Core.Functions.TriggerCallback = function(name, source, cb, ...)
         QBCore.Functions.TriggerCallback(name, source, cb, ...)
+    end
+
+    -- --- CONVENIENCE WRAPPERS ---
+    -- These allow downstream scripts to use short-form calls  
+    Core.Notify = function(src, msg, type)
+        TriggerClientEvent('QBCore:Notify', src, msg, type)
+    end
+
+    Core.RemoveMoney = function(src, account, amount, reason)
+        return Core.Money.RemoveMoney(src, account, amount, reason)
+    end
+
+    Core.AddMoney = function(src, account, amount, reason)
+        return Core.Money.AddMoney(src, account, amount, reason)
+    end
+
+    Core.Player.GetLicense = function(src)
+        local identifiers = GetPlayerIdentifiers(src)
+        for _, id in ipairs(identifiers) do
+            if string.find(id, 'license:') then
+                return id
+            end
+        end
+        return nil
     end
 end
 

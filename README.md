@@ -77,8 +77,14 @@ A universal framework bridge and security layer for FiveM. One dependency — ev
 Add to your `server.cfg` — the bridge **must** start before any resource that depends on it:
 
 ```cfg
+# Core Dependencies
 ensure oxmysql
+ensure ox_lib
+
+# Framework
 ensure qb-core          # or es_extended / qbx_core
+
+# DjonStNix Ecosystem (Must start in this order)
 ensure DjonStNix-Bridge
 ensure DjonStNix-Banking # (optional)
 ensure DjonStNix-Shops   # (optional)
