@@ -1,3 +1,14 @@
+-- ==============================================================================
+-- 👑 DJONSTNIX BRANDING
+-- ==============================================================================
+-- DEVELOPED BY: DjonStNix (DjonLuc)
+-- GITHUB: https://github.com/Djonluc
+-- DISCORD: https://discord.gg/s7GPUHWrS7
+-- YOUTUBE: https://www.youtube.com/@Djonluc
+-- EMAIL: djonstnix@gmail.com
+-- LICENSE: MIT License (c) 2026 DjonStNix (DjonLuc)
+-- ==============================================================================
+
 fx_version 'cerulean'
 game 'gta5'
 

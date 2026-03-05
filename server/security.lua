@@ -126,6 +126,84 @@ AddEventHandler('playerDropped', function()
 end)
 
 -- ==================================================
+-- SECURE SERVER EVENT (Convenience Wrapper)
+-- ==================================================
+-- Usage: SecureServerEvent('myEvent', function(src, ...) end)
+-- Combines RegisterNetEvent + SecureHandler in one call.
+
+function SecureServerEvent(eventName, handler, opts)
+    opts = opts or {}
+    opts.name = opts.name or eventName
+    RegisterNetEvent(eventName, SecureHandler(handler, opts))
+end
+
+-- ==================================================
+-- VALIDATION HELPERS (NUI/Client Input)
+-- ==================================================
+
+Core.Validation = {}
+
+--- Validate a string value with min/max length
+function Core.Validation.String(value, minLen, maxLen)
+    minLen = minLen or 1
+    maxLen = maxLen or 64
+    if type(value) ~= 'string' then return false, "Expected string" end
+    if #value < minLen then return false, "String too short (min " .. minLen .. ")" end
+    if #value > maxLen then return false, "String too long (max " .. maxLen .. ")" end
+    return true
+end
+
+--- Validate a numeric value with min/max range
+function Core.Validation.Number(value, min, max)
+    min = min or 1
+    max = max or 999999999
+    local n = tonumber(value)
+    if not n then return false, "Expected number" end
+    if n ~= n then return false, "NaN" end
+    if n < min then return false, "Below minimum (" .. min .. ")" end
+    if n > max then return false, "Above maximum (" .. max .. ")" end
+    return true
+end
+
+--- Validate a player exists by server ID
+function Core.Validation.PlayerExists(serverId)
+    local sid = tonumber(serverId)
+    if not sid or sid <= 0 then return false, "Invalid server ID" end
+    local name = GetPlayerName(sid)
+    if not name then return false, "Player not found" end
+    return true
+end
+
+--- Validate a citizenid exists in the database
+function Core.Validation.CitizenExists(citizenid)
+    if type(citizenid) ~= 'string' or #citizenid < 1 then return false, "Invalid citizenid" end
+    local rows = MySQL.query.await('SELECT citizenid FROM players WHERE citizenid = ? LIMIT 1', {citizenid})
+    return rows and #rows > 0, rows and #rows > 0 and nil or "Citizen not found"
+end
+
+-- ==================================================
+-- STRUCTURED ERROR LOGGING
+-- ==================================================
+
+Core.Logging = Core.Logging or {}
+
+function Core.Logging.Error(system, message, context)
+    local ctx = ""
+    if context and type(context) == 'table' then
+        local parts = {}
+        for k, v in pairs(context) do
+            parts[#parts + 1] = k .. "=" .. tostring(v)
+        end
+        ctx = " | " .. table.concat(parts, ", ")
+    end
+    local line = ("^1[%s ERROR]^7 %s%s"):format(system, message, ctx)
+    print(line)
+    if Core.Log then
+        Core.Log('error', ("[%s] %s%s"):format(system, message, ctx))
+    end
+end
+
+-- ==================================================
 -- FRAMEWORK COMMAND REGISTRATION
 -- ==================================================
 
@@ -158,4 +236,5 @@ Core.Security.RateLimit = RateLimit
 Core.Security.TakeToken = TakeToken
 Core.Security.ValidateInput = ValidateInput
 Core.Security.SecureHandler = SecureHandler
+Core.Security.SecureServerEvent = SecureServerEvent
 Core.Security.RegisterCommand = InternalRegisterCommand
