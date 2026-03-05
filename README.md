@@ -26,7 +26,7 @@ LICENSE: MIT License (c) 2026 DjonStNix (DjonLuc)
 
 - **Author:** DjonLuc
 - **Project:** DjonStNix Ecosystem
-- **GitHub:** [https://github.com/Djonluc](https://github.com/Djonluc)
+- **GitHub Repository:** [https://github.com/Djonluc/DjonStNix-Bridge](https://github.com/Djonluc/DjonStNix-Bridge)
 
 ## ✨ Features
 
@@ -114,7 +114,7 @@ ensure DjonStNix-Banking
 
 ## 🔌 Optional Integrations
 
-- **DjonStNix-Banking:** Unlocks the atomic monetary API.
+- **[DjonStNix-Banking](https://github.com/Djonluc/DjonStNix-Banking):** Unlocks the atomic monetary API.
 
 ## 💻 Example Usage
 
