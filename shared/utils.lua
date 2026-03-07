@@ -59,5 +59,7 @@ end
 
 -- Attach utilities to core
 if Core then
-    Core.Utils = Utils
+    for k, v in pairs(Utils) do
+        Core.Utils[k] = v
+    end
 end

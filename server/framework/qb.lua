@@ -54,6 +54,12 @@ local function InitializeQB()
     end
 
     -- --- MONEY ---
+    Core.Money.GetMoney = function(src, account)
+        local player = QBCore.Functions.GetPlayer(src)
+        if not player then return 0 end
+        return player.PlayerData.money[account or 'bank'] or 0
+    end
+
     Core.Money.AddMoney = function(src, account, amount, reason)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
@@ -140,6 +146,22 @@ local function InitializeQB()
         local identifier = Core.Player.GetIdentifier(src)
         local result = MySQL.single.await('SELECT 1 FROM player_vehicles WHERE citizenid = ? AND plate = ?', {identifier, plate})
         return result ~= nil
+    end
+
+    -- --- VEHICLE DATA ---
+    Core.Vehicle.GetVehicleData = function(model)
+        return QBCore.Shared.Vehicles[model] or nil
+    end
+
+    Core.Vehicle.GetVehiclePrice = function(model)
+        local data = Core.Vehicle.GetVehicleData(model)
+        return data and data.price or 0
+    end
+
+    Core.Vehicle.GetVehicleLabel = function(model)
+        local data = Core.Vehicle.GetVehicleData(model)
+        if data then return data.name or data.model end
+        return model
     end
 
     -- --- FUNCTIONS (CALLBACKS) ---

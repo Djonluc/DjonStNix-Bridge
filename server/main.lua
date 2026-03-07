@@ -14,21 +14,11 @@
 -- ==================================================
 
 CreateThread(function()
-    print("^4" .. [[
-  _____  _             ____       _     _               
- |  __ \(_)           |  _ \     (_)   | |              
- | |  | |_  ___  _ __ | |_) |_ __ _  __| | __ _  ___ 
- | |  | | |/ _ \| '_ \|  _ <| '__| |/ _` |/ _` |/ _ \
- | |__| | | (_) | | | | |_) | |  | | (_| | (_| |  __/
- |_____/| |\___/|_| |_|____/|_|  |_|\__,_|\__, |\___|
-       _/ |                                __/ |      
-      |__/                                |___/       
-    ]] .. "^7")
-    
-    print(("^4[%s]^7 v%s — Initializing Master Architecture..."):format(Config.BrandName, Config.Version or "1.0.0"))
+    Wait(100)
+    Core.Utils.PrintBanner("DjonStNix-Bridge", "2.0.0")
     
     local framework = GetFramework()
-    print(("^4[%s]^7 Framework Detected: ^2%s^7"):format(Config.BrandName, framework))
+    print(("^4[DjonStNix-Bridge]^7 Framework Detected: ^2%s^7"):format(framework))
     
     -- [[ STRICT BOOT VALIDATION ]] --
     local missingDeps = {}
@@ -79,14 +69,36 @@ CreateThread(function()
         checkDep('djonstnix-economy')
         checkDep('DjonStNix-Shops')
         checkDep('djonstnix-vehicles')
-        checkDep('DjonStNix-Transactions')
         checkDep('djonstnix-analytics')
-        checkDep('DjonStNix-Billing')
-        checkDep('DjonStNix-Identity')
+        checkDep('DjonStNix-Government')
         checkDep('DjonStNix-AssetRegistry')
         print("^4====================================^7\n")
     end)
 end)
+
+-- ==================================================
+-- SDK UTILITY COMMANDS
+-- ==================================================
+
+RegisterCommand('dsn-plugins', function(source, args, rawCommand)
+    if source ~= 0 and not Core.Player.IsAdmin(source) then return end
+    
+    local plugins = Core.Registry.Plugins or {}
+    local count = 0
+    for _ in pairs(plugins) do count = count + 1 end
+    
+    print("^5====================================^0")
+    print("^3  DJONSTNIX SDK PLUGINS (" .. count .. ")^0")
+    print("^5====================================^0")
+    if count == 0 then
+        print("  ^7No external plugins registered.")
+    else
+        for name, data in pairs(plugins) do
+            print(("^2- %-20s ^7v%-8s ^3(%s)^7"):format(name, data.version or "1.0", data.author or "Unknown"))
+        end
+    end
+    print("^5====================================^0")
+end, false)
 
 -- ==================================================
 -- PHASE 25: MDT PROFILE AGGREGATOR
@@ -106,26 +118,95 @@ exports('GetPlayerProfile', function(citizenid)
     end
 
     -- 2. Unpaid Invoices
-    if GetResourceState('DjonStNix-Billing') == 'started' then
+    if GetResourceState('DjonStNix-Banking') == 'started' then
         pcall(function()
             local invs = MySQL.query.await('SELECT invoice_id, total, issuer_type, issuer_id, status, created_at FROM djonstnix_invoices WHERE target_id = ? AND status = "pending"', { citizenid })
             profile.invoices = invs or {}
         end)
     end
 
-    -- 3. Licenses & Documents
-    if GetResourceState('DjonStNix-Identity') == 'started' then
+    -- 3. Government Profile (Identity, Licenses, Assets)
+    if GetResourceState('DjonStNix-Government') == 'started' then
         pcall(function()
-            profile.licenses = exports['DjonStNix-Identity']:GetAll(citizenid)
-        end)
-    end
-
-    -- 4. Registered Assets
-    if GetResourceState('DjonStNix-AssetRegistry') == 'started' then
-        pcall(function()
-            profile.assets = exports['DjonStNix-AssetRegistry']:GetPlayerAssets(citizenid)
+            local govProfile = exports['DjonStNix-Government']:GetCitizenProfile(citizenid)
+            if govProfile then
+                profile.licenses = govProfile.licenses
+                profile.assets = govProfile.assets
+                profile.government = {
+                    firstname = govProfile.firstname,
+                    lastname = govProfile.lastname,
+                    dob = govProfile.dob,
+                    gender = govProfile.gender
+                }
+            end
         end)
     end
 
     return profile
 end)
+
+-- ==================================================
+-- PLAYER LOADED HOOKS
+-- ==================================================
+
+AddEventHandler('QBCore:Server:PlayerLoaded', function(Player)
+    if not Player then return end
+    EventBus.Emit('player:loaded', { source = Player.PlayerData.source, identifier = Player.PlayerData.citizenid })
+end)
+
+AddEventHandler('esx:playerLoaded', function(source, player)
+    if not player then return end
+    EventBus.Emit('player:loaded', { source = source, identifier = player.identifier })
+end)
+
+AddEventHandler('qbx_core:server:playerLoaded', function(source)
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return end
+    EventBus.Emit('player:loaded', { source = source, identifier = player.PlayerData.citizenid })
+end)
+
+-- ==================================================
+-- SYSTEM DIAGNOSTICS
+-- ==================================================
+
+RegisterCommand('dsn-audit', function(source, args, rawCommand)
+    if source ~= 0 and not Core.Player.IsAdmin(source) then return end
+    
+    print("^4====================================^7")
+    print("^3  DJONSTNIX ECOSYSTEM AUDIT  ^7")
+    print("^4====================================^7")
+    
+    local framework = GetFramework()
+    print(("^2[Framework]^7 Detected: ^5%s^7"):format(framework))
+    
+    local resources = {
+        'DjonStNix-Bridge',
+        'DjonStNix-Banking',
+        'DjonStNix-Shops',
+        'DjonStNix-Government',
+        'DjonStNix-Launderer',
+        'djonstnix-vehicles'
+    }
+    
+    for _, res in ipairs(resources) do
+        local state = GetResourceState(res)
+        local color = state == 'started' and '^2' or (state == 'missing' and '^1' or '^3')
+        print(("^2[Resource]^7 %-25s %s%s^7"):format(res, color, state))
+    end
+    
+    print("^4====================================^7")
+end, false)
+
+RegisterCommand('dsn-test-framework', function(source, args, rawCommand)
+    if source ~= 0 and not Core.Player.IsAdmin(source) then return end
+    
+    local targetId = tonumber(args[1]) or source
+    if targetId == 0 then print("^1[Error]^7 Source 0 cannot test player functions.") return end
+    
+    print("^4--- Framework Logic Test ---^7")
+    local cid = Core.Player.GetIdentifier(targetId)
+    print(("^2- Identifier:^7 %s"):format(cid or "nil"))
+    local bank = Core.Money.GetBalance(targetId, 'bank')
+    print(("^2- Bank Balance:^7 $%s"):format(bank or "0"))
+    print("^4----------------------------^7")
+end, false)

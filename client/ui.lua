@@ -108,3 +108,24 @@ Core.UI.GetItemImage = function(itemName)
     end
     return "nui://qb-inventory/html/images/" .. image -- Final fallback
 end
+-- --- DRAW TEXT / UI ---
+Core.UI.DrawText = function(text, position)
+    if GetResourceState('ox_lib') == 'started' then
+        exports.ox_lib:showTextUI(text, { position = position or 'left-center' })
+    elseif GetResourceState('qb-core') == 'started' then
+        exports['qb-core']:DrawText(text, position or 'left')
+    else
+        -- Fallback to native UI if nothing else exists
+        BeginTextCommandDisplayHelp("STRING")
+        AddTextComponentScaleform(text)
+        EndTextCommandDisplayHelp(0, false, true, -1)
+    end
+end
+
+Core.UI.HideText = function()
+    if GetResourceState('ox_lib') == 'started' then
+        exports.ox_lib:hideTextUI()
+    elseif GetResourceState('qb-core') == 'started' then
+        exports['qb-core']:HideText()
+    end
+end

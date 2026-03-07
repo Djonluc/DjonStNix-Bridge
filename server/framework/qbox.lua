@@ -65,6 +65,12 @@ local function InitializeQBox()
     end
 
     -- --- MONEY ---
+    Core.Money.GetMoney = function(src, account)
+        local player = exports.qbx_core:GetPlayer(src)
+        if not player then return 0 end
+        return player.PlayerData.money[account or 'bank'] or 0
+    end
+
     Core.Money.AddMoney = function(src, account, amount, reason)
         local player = exports.qbx_core:GetPlayer(src)
         if not player then return false end
@@ -79,9 +85,7 @@ local function InitializeQBox()
     end
 
     Core.Money.GetBalance = function(src, account)
-        local player = exports.qbx_core:GetPlayer(src)
-        if not player then return 0 end
-        return player.PlayerData.money[account or 'bank'] or 0
+        return Core.Money.GetMoney(src, account)
     end
 
     -- --- ITEMS (ox_inventory — standard for QBox) ---

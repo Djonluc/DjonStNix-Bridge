@@ -61,14 +61,21 @@ local function InitializeESX()
     end
 
     -- --- MONEY ---
-    Core.Money.AddMoney = function(src, account, amount)
+    Core.Money.GetMoney = function(src, account)
+        local player = ESX.GetPlayerFromId(src)
+        if not player then return 0 end
+        local acc = player.getAccount(account == 'bank' and 'bank' or 'money')
+        return acc and acc.money or 0
+    end
+
+    Core.Money.AddMoney = function(src, account, amount, reason)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
         player.addAccountMoney(account == 'bank' and 'bank' or 'money', amount)
         return true
     end
 
-    Core.Money.RemoveMoney = function(src, account, amount)
+    Core.Money.RemoveMoney = function(src, account, amount, reason)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
         if player.getAccount(account == 'bank' and 'bank' or 'money').money >= amount then
@@ -79,10 +86,7 @@ local function InitializeESX()
     end
 
     Core.Money.GetBalance = function(src, account)
-        local player = ESX.GetPlayerFromId(src)
-        if not player then return 0 end
-        local acc = player.getAccount(account == 'bank' and 'bank' or 'money')
-        return acc and acc.money or 0
+        return Core.Money.GetMoney(src, account)
     end
 
     -- --- UI ---

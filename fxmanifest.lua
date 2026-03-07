@@ -37,6 +37,7 @@ server_scripts {
     'server/logging.lua',
     'server/permissions.lua',
     'server/features.lua',
+    'server/testing.lua',
     'server/main.lua'
 }
 

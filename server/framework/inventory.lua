@@ -21,6 +21,15 @@ local function InitializeInventory()
         Core.Items.GetItemCount = function(src, item)
             return exports.ox_inventory:GetItemCount(src, item)
         end
+        Core.Items.GetImagePath = function(itemName)
+            return ('nui://ox_inventory/web/images/%s.png'):format(itemName)
+        end
+        Core.Items.GetItemLabel = function(itemName)
+            local items = exports.ox_inventory:Items()
+            if items and items[itemName] then return items[itemName].label end
+            return nil
+        end
+        Core.Items.ImageBasePath = 'nui://ox_inventory/web/images/'
 
     -- --- QB INVENTORY ---
     elseif IsResourceRunning('qb-inventory') then
@@ -55,14 +64,56 @@ local function InitializeInventory()
             local itemData = player.Functions.GetItemByName(item)
             return itemData and itemData.amount or 0
         end
+        Core.Items.GetImagePath = function(itemName)
+            return ('nui://qb-inventory/html/images/%s.png'):format(itemName)
+        end
+        Core.Items.GetItemLabel = function(itemName)
+            local shared = QBCore.Shared.Items[itemName]
+            if shared then return shared.label end
+            return nil
+        end
+        Core.Items.ImageBasePath = 'nui://qb-inventory/html/images/'
 
     -- --- QS INVENTORY ---
     elseif IsResourceRunning('qs-inventory') then
         Core.Items.AddItem = function(src, item, amount, metadata)
             return exports['qs-inventory']:AddItem(src, item, amount, metadata)
         end
-        -- ... qs specific calls if needed
+        Core.Items.GetImagePath = function(itemName)
+            return ('nui://qs-inventory/html/images/%s.png'):format(itemName)
+        end
+        Core.Items.GetItemLabel = function(itemName) return nil end
+        Core.Items.ImageBasePath = 'nui://qs-inventory/html/images/'
+    end
+
+    -- Fallback if no function was assigned
+    if not Core.Items.GetImagePath then
+        Core.Items.GetImagePath = function(itemName)
+            return ('nui://qb-inventory/html/images/%s.png'):format(itemName)
+        end
+        Core.Items.ImageBasePath = 'nui://qb-inventory/html/images/'
+    end
+    if not Core.Items.GetItemLabel then
+        Core.Items.GetItemLabel = function(itemName) 
+            -- Try to derive a clean label from the name as a last resort
+            if not itemName then return "Unknown Item" end
+            local label = itemName:gsub("_", " "):gsub("^%l", string.upper)
+            return label
+        end
+    end
+    -- --- GLOBAL NOTIFICATION HELPERS ---
+    Core.Items.NotifyReceived = function(src, item, amount)
+        if IsResourceRunning('ox_inventory') then
+            TriggerClientEvent('ox_inventory:itemNotify', src, {item = item, amount = amount, type = 'add'})
+        elseif IsResourceRunning('qb-inventory') then
+            local QBCore = exports['qb-core']:GetCoreObject()
+            local itemData = QBCore.Shared.Items[item]
+            if itemData then
+                TriggerClientEvent('inventory:client:ItemBox', src, itemData, 'add', amount)
+            end
+        end
     end
 end
 
 InitializeInventory()
+

@@ -31,12 +31,14 @@ local function InitializeStandalone()
     Core.Player.IsAdmin = function(src) return false end
 
     -- --- MONEY ---
-    Core.Money.AddMoney = function(src, account, amount)
+    Core.Money.GetMoney = function(src, account) return 0 end
+
+    Core.Money.AddMoney = function(src, account, amount, reason)
         print(("^3[DjonStNix-Bridge Standalone]^7 AddMoney %s to %s (No framework)"):format(amount, src))
         return true
     end
 
-    Core.Money.RemoveMoney = function(src, account, amount) return true end
+    Core.Money.RemoveMoney = function(src, account, amount, reason) return true end
     Core.Money.GetBalance = function(src, account) return 0 end
 
     -- --- ITEMS ---
