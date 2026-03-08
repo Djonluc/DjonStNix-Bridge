@@ -26,6 +26,7 @@ function InitializeCore()
     Core.Items = {}
     Core.Vehicle = {}
     Core.Society = {}
+    Core.Government = {}
     Core.Security = {}
     Core.Logging = {}
     Core.Registry = {}

@@ -46,6 +46,21 @@ CreateThread(function()
     if f.hasDispatch     then caps[#caps+1] = "Dispatch" end
     print(("^4[%s]^7 Feature Gates: ^2%s^7"):format(Config.BrandName, #caps > 0 and table.concat(caps, ", ") or "None"))
     
+    -- [[ GOVERNMENT INTEGRATION ]] --
+    Core.Government.GetTaxConfig = function()
+        if GetResourceState('DjonStNix-Government') == 'started' then
+            return exports['DjonStNix-Government']:GetTaxConfig()
+        end
+        return { enabled = false, rates = {} }
+    end
+
+    Core.Government.RegisterWeapon = function(src, weaponModel, serialNumber)
+        if GetResourceState('DjonStNix-Government') == 'started' then
+            return exports['DjonStNix-Government']:RegisterWeapon(src, weaponModel, serialNumber)
+        end
+        return false
+    end
+
     Core.Ready = true
     print(("^2[DjonStNix-Bridge]^7 v%s — Core.Ready is now TRUE."):format(Config.Version or "1.0.0"))
 
@@ -210,3 +225,12 @@ RegisterCommand('dsn-test-framework', function(source, args, rawCommand)
     print(("^2- Bank Balance:^7 $%s"):format(bank or "0"))
     print("^4----------------------------^7")
 end, false)
+
+-- ==================================================
+-- LEGACY & COMPATIBILITY EXPORTS
+-- ==================================================
+--- Universal identifier retrieval for ecosystem scripts.
+--- Usage: exports['DjonStNix-Bridge']:GetIdentifier(source)
+exports('GetIdentifier', function(src)
+    return Core.Player.GetIdentifier(src)
+end)

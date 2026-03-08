@@ -138,6 +138,8 @@ local Core = exports['DjonStNix-Bridge']:GetCore()
 
 - `Core.Player.GetIdentifier(source)`: Returns the unique CID/License.
 - `Core.Money.AddMoney(source, type, amount, reason)`: Universal money adding.
+- `Core.Government.RegisterWeapon(src, model, serial)`: Registers a firearm with the state.
+- `Core.Utils.GenerateSerialNumber(prefix)`: Generates a unique 8-character string.
 - `Core.Security.SecureServerEvent(name, cb)`: Registers a protected network event.
 
 ---

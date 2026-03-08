@@ -57,6 +57,16 @@ function Utils.CalculateProgressiveTax(src, fallbackRate)
     return rate, totalWealth
 end
 
+function Utils.GenerateSerialNumber(prefix)
+    local chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    local serial = (prefix or 'SN') .. '-'
+    for i = 1, 8 do
+        local rand = math.random(#chars)
+        serial = serial .. chars:sub(rand, rand)
+    end
+    return serial
+end
+
 -- Attach utilities to core
 if Core then
     for k, v in pairs(Utils) do

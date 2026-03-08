@@ -56,4 +56,5 @@ exports {
     'GetFeatures',
     'SecureHandler',
     'ValidateInput',
+    'GetIdentifier'
 }
