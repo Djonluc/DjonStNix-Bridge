@@ -16,7 +16,7 @@ function EventBus.On(eventName, handler)
 end
 
 -- ==================================================
--- MASTER CORE API OBJECT
+-- MASTER CORE API OBJECT (V2.1 Standard)
 -- ==================================================
 
 function InitializeCore()
@@ -47,11 +47,16 @@ function InitializeCore()
     Core.Functions = {}
     Core.Ready = false
     
-    -- Shared Utilities (Late-mapped to ensure they exist)
-    Core.IsResourceRunning = function(...) return IsResourceRunning(...) end
-    Core.GetIntegrationStatus = function(...) return GetIntegrationStatus(...) end
+    -- [[ Shared API Bindings ]] --
+    Core.IsResourceRunning = function(name) return GetResourceState(name) == 'started' end
     Core.Emit = EventBus.Emit
     Core.On = EventBus.On
+
+    -- [[ Late-Binding Ecosystem Hooks ]] --
+    -- This ensures that if Government or Economy start LATER, the Core can still route to them.
+    Core.GetEconomy = function() return Core.IsResourceRunning('djonstnix-economy') and exports['djonstnix-economy'] or nil end
+    Core.GetGovernment = function() return Core.IsResourceRunning('DjonStNix-Government') and exports['DjonStNix-Government'] or nil end
+    Core.GetBanking = function() return Core.IsResourceRunning('DjonStNix-Banking') and exports['DjonStNix-Banking'] or nil end
 
     -- SDK Extensions
     Core.Utils.PrintBanner = function(resource, version)
@@ -70,7 +75,6 @@ function InitializeCore()
         Core.Registry.Plugins[name] = pluginTable
         print(("^2[DjonStNix-Bridge]^7 Plugin Registered: ^3%s^7 (v%s)"):format(name, pluginTable.version or "1.0"))
         
-        -- Emit generic registration event
         Core.Emit('bridge:plugin:registered', { name = name, version = pluginTable.version })
         return true
     end

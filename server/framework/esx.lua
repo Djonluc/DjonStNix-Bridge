@@ -64,6 +64,16 @@ local function InitializeESX()
     Core.Money.GetMoney = function(src, account)
         local player = ESX.GetPlayerFromId(src)
         if not player then return 0 end
+
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local accountId = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account == 'bank' and 'checking' or 'savings') -- Default mapping
+            if accountId then
+                return exports['DjonStNix-Banking']:GetBalance(accountId) / 100
+            end
+        end
+
         local acc = player.getAccount(account == 'bank' and 'bank' or 'money')
         return acc and acc.money or 0
     end
@@ -71,6 +81,19 @@ local function InitializeESX()
     Core.Money.AddMoney = function(src, account, amount, reason)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
+
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local targetAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account == 'bank' and 'checking' or 'savings')
+            
+            pcall(function()
+                exports['DjonStNix-Banking']:ProcessTransaction(
+                    nil, targetAcc, amount * 100, 'deposit', { reason = reason or "Bridge Deposit" }
+                )
+            end)
+        end
+
         player.addAccountMoney(account == 'bank' and 'bank' or 'money', amount)
         return true
     end
@@ -78,6 +101,18 @@ local function InitializeESX()
     Core.Money.RemoveMoney = function(src, account, amount, reason)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
+        
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local sourceAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account == 'bank' and 'checking' or 'savings')
+            
+            local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(
+                sourceAcc, nil, amount * 100, 'withdraw', { reason = reason or "Bridge Withdraw" }
+            )
+            if not success then return false end
+        end
+
         if player.getAccount(account == 'bank' and 'bank' or 'money').money >= amount then
             player.removeAccountMoney(account == 'bank' and 'bank' or 'money', amount)
             return true

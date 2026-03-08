@@ -184,19 +184,30 @@ end)
 -- SYSTEM DIAGNOSTICS
 -- ==================================================
 
-RegisterCommand('dsn-audit', function(source, args, rawCommand)
+RegisterCommand('dsn-status', function(source, args, rawCommand)
     if source ~= 0 and not Core.Player.IsAdmin(source) then return end
     
-    print("^4====================================^7")
-    print("^3  DJONSTNIX ECOSYSTEM AUDIT  ^7")
-    print("^4====================================^7")
+    print("\n^5====================================")
+    print("    DJONSTNIX ECOSYSTEM STATUS")
+    print("====================================^0")
     
     local framework = GetFramework()
-    print(("^2[Framework]^7 Detected: ^5%s^7"):format(framework))
+    print(("^2- Framework :^7 %-20s [✓]"):format(framework))
+    
+    local f = Core.Features
+    local caps = {}
+    if f.hasInventory    then caps[#caps+1] = "Inv" end
+    if f.hasTarget       then caps[#caps+1] = "Target" end
+    if f.hasBanking      then caps[#caps+1] = "Bank" end
+    if f.hasShops        then caps[#caps+1] = "Shops" end
+    print(("^2- Features  :^7 %-20s"):format(table.concat(caps, ", ")))
+
+    print("^5------------------------------------^0")
     
     local resources = {
         'DjonStNix-Bridge',
         'DjonStNix-Banking',
+        'djonstnix-economy',
         'DjonStNix-Shops',
         'DjonStNix-Government',
         'DjonStNix-Launderer',
@@ -206,10 +217,15 @@ RegisterCommand('dsn-audit', function(source, args, rawCommand)
     for _, res in ipairs(resources) do
         local state = GetResourceState(res)
         local color = state == 'started' and '^2' or (state == 'missing' and '^1' or '^3')
-        print(("^2[Resource]^7 %-25s %s%s^7"):format(res, color, state))
+        local sym = state == 'started' and '[✓]' or '[✗]'
+        print(("^2- %-20s^7 %s%s^7"):format(res, color, sym))
     end
     
-    print("^4====================================^7")
+    print("^5====================================^0\n")
+end, false)
+
+RegisterCommand('dsn-audit', function(source, args, rawCommand)
+    ExecuteCommand('dsn-status')
 end, false)
 
 RegisterCommand('dsn-test-framework', function(source, args, rawCommand)

@@ -57,12 +57,36 @@ local function InitializeQB()
     Core.Money.GetMoney = function(src, account)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return 0 end
+        
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local accountId = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            if accountId then
+                return exports['DjonStNix-Banking']:GetBalance(accountId) / 100 -- Convert cents to dollars
+            end
+        end
+
         return player.PlayerData.money[account or 'bank'] or 0
     end
 
     Core.Money.AddMoney = function(src, account, amount, reason)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
+
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local targetAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            
+            pcall(function()
+                exports['DjonStNix-Banking']:ProcessTransaction(
+                    nil, targetAcc, amount * 100, 'deposit', { reason = reason or "Bridge Deposit" }
+                )
+            end)
+            -- We still sync with framework for secondary storage/UI compatibility
+        end
+
         return player.Functions.AddMoney(account or 'bank', amount, reason or "djonstnix-bridge-deposit")
     end
 
@@ -70,6 +94,19 @@ local function InitializeQB()
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
         if player.PlayerData.money[account or 'bank'] < amount then return false end
+
+        -- Priority Check: DjonStNix-Banking
+        if GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local sourceAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            
+            local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(
+                sourceAcc, nil, amount * 100, 'withdraw', { reason = reason or "Bridge Withdraw" }
+            )
+            if not success then return false end
+            -- Framework sync happens below
+        end
+
         return player.Functions.RemoveMoney(account or 'bank', amount, reason or "djonstnix-bridge-withdraw")
     end
 
