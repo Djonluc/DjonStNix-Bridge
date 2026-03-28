@@ -238,3 +238,11 @@ Core.Security.ValidateInput = ValidateInput
 Core.Security.SecureHandler = SecureHandler
 Core.Security.SecureServerEvent = SecureServerEvent
 Core.Security.RegisterCommand = InternalRegisterCommand
+
+exports('ValidateInput', function(value, expectedType, opts)
+    return ValidateInput(value, expectedType, opts)
+end)
+
+exports('SecureHandler', function(fn, opts)
+    return SecureHandler(fn, opts)
+end)

@@ -35,9 +35,30 @@ local function InitializeQBox()
         return player.PlayerData.charinfo.firstname .. " " .. player.PlayerData.charinfo.lastname
     end
 
+    Core.Player.GetSourceFromIdentifier = function(identifier)
+        for _, src in ipairs(Core.Player.GetPlayers() or {}) do
+            if Core.Player.GetIdentifier(src) == identifier then
+                return src
+            end
+        end
+        return nil
+    end
+
     Core.Player.GetJob = function(src)
         local player = exports.qbx_core:GetPlayer(src)
         return player and player.PlayerData.job or nil
+    end
+
+    Core.Player.HasJob = function(src, jobName, level)
+        local job = Core.Player.GetJob(src)
+        if not job or not jobName then return false end
+        if string.lower(job.name or '') ~= string.lower(jobName) then return false end
+
+        if level ~= nil then
+            return tonumber(job.grade and job.grade.level or job.grade or 0) >= tonumber(level)
+        end
+
+        return true
     end
 
     Core.Player.HasLicense = function(src, license)
@@ -68,20 +89,78 @@ local function InitializeQBox()
     Core.Money.GetMoney = function(src, account)
         local player = exports.qbx_core:GetPlayer(src)
         if not player then return 0 end
-        return player.PlayerData.money[account or 'bank'] or 0
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
+
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local accountId = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
+            if accountId then
+                return exports['DjonStNix-Banking']:GetBalance(accountId) / 100
+            end
+        end
+
+        return player.PlayerData.money[moneyType] or 0
     end
 
-    Core.Money.AddMoney = function(src, account, amount, reason)
+    Core.Money.AddMoney = function(src, account, amount, reason, metadata)
         local player = exports.qbx_core:GetPlayer(src)
         if not player then return false end
-        return player.Functions.AddMoney(account or 'bank', amount, reason or "djonstnix-bridge-deposit")
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
+
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' and not (metadata and metadata.skipBankingSync) then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local targetAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
+
+            pcall(function()
+                exports['DjonStNix-Banking']:ProcessTransaction(
+                    nil, targetAcc, amount * 100, 'deposit', metadata or { reason = reason or "Bridge Deposit" }
+                )
+            end)
+        end
+
+        return player.Functions.AddMoney(moneyType, amount, reason or "djonstnix-bridge-deposit")
     end
 
-    Core.Money.RemoveMoney = function(src, account, amount, reason)
+    Core.Money.RemoveMoney = function(src, account, amount, reason, metadata)
         local player = exports.qbx_core:GetPlayer(src)
         if not player then return false end
-        if player.PlayerData.money[account or 'bank'] < amount then return false end
-        return player.Functions.RemoveMoney(account or 'bank', amount, reason or "djonstnix-bridge-withdraw")
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
+        if player.PlayerData.money[moneyType] < amount then return false end
+
+        -- Priority Check: DjonStNix-Banking
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' and not (metadata and metadata.skipBankingSync) then
+            local citizenid = Core.Player.GetIdentifier(src)
+            local sourceAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
+            
+            -- Strict Enforcement for Bank Accounts
+            local meta = metadata or { reason = reason or "General Purchase" }
+            if bankAccountType == 'checking' and not meta.receipt then
+                local invokingResource = GetInvokingResource() or "Unknown"
+                print("^1[DjonStNix-Bridge] CRITICAL WARNING: Bank transaction missing receipt! Resource: " .. invokingResource .. "^7")
+
+                -- Construct fallback receipt as per spec
+                meta.receipt = {
+                    source = "Unknown Transaction",
+                    items = { { name = "Transaction", quantity = 1, unitPrice = amount, total = amount } },
+                    subtotal = amount,
+                    tax = 0,
+                    total = amount,
+                    date = os.date("%Y-%m-%d %H:%M:%S"),
+                    flagged_fallback = true
+                }
+            end
+
+            local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(
+                sourceAcc, nil, amount * 100, 'withdraw', meta
+            )
+            if not success then return false end
+            -- Framework sync happens below
+        end
+
+        return player.Functions.RemoveMoney(moneyType, amount, reason or "djonstnix-bridge-withdraw")
     end
 
     Core.Money.GetBalance = function(src, account)
@@ -110,6 +189,30 @@ local function InitializeQBox()
         if GetResourceState('ox_inventory') == 'started' then
             exports['ox_inventory']:RegisterUsableItem(item, cb)
         end
+    end
+
+    Core.Functions.GetPlayer = function(src)
+        return Core.Player.GetPlayer(src)
+    end
+
+    Core.Functions.GetPlayers = function()
+        return Core.Player.GetPlayers()
+    end
+
+    Core.Functions.GetPlayerData = function(src)
+        return Core.Player.GetPlayerData(src)
+    end
+
+    Core.Notify = function(src, msg, type)
+        Core.UI.Notify(src, msg, type)
+    end
+
+    Core.RemoveMoney = function(src, account, amount, reason, metadata)
+        return Core.Money.RemoveMoney(src, account, amount, reason, metadata)
+    end
+
+    Core.AddMoney = function(src, account, amount, reason, metadata)
+        return Core.Money.AddMoney(src, account, amount, reason, metadata)
     end
 end
 

@@ -58,7 +58,11 @@ local function RunDiagnostics(source)
     end
 
     -- Check for DSN Resource Integrity
-    local dsnResources = {'DjonStNix-Banking', 'DjonStNix-Shops', 'djonstnix-economy'}
+    local dsnResources = {
+        'DjonStNix-Banking',
+        'DjonStNix-Shops',
+        GetResourceState('DjonStNix-economy') == 'started' and 'DjonStNix-economy' or 'djonstnix-economy'
+    }
     print("^5[DSN Ecosystem Integrity]^7")
     for _, res in ipairs(dsnResources) do
         if GetResourceState(res) == 'started' then

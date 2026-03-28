@@ -21,9 +21,6 @@ local function InitializeInventory()
         Core.Items.GetItemCount = function(src, item)
             return exports.ox_inventory:GetItemCount(src, item)
         end
-        Core.Items.GetImagePath = function(itemName)
-            return ('nui://ox_inventory/web/images/%s.png'):format(itemName)
-        end
         Core.Items.GetItemLabel = function(itemName)
             local items = exports.ox_inventory:Items()
             if items and items[itemName] then return items[itemName].label end
@@ -64,9 +61,6 @@ local function InitializeInventory()
             local itemData = player.Functions.GetItemByName(item)
             return itemData and itemData.amount or 0
         end
-        Core.Items.GetImagePath = function(itemName)
-            return ('nui://qb-inventory/html/images/%s.png'):format(itemName)
-        end
         Core.Items.GetItemLabel = function(itemName)
             local shared = QBCore.Shared.Items[itemName]
             if shared then return shared.label end
@@ -79,20 +73,11 @@ local function InitializeInventory()
         Core.Items.AddItem = function(src, item, amount, metadata)
             return exports['qs-inventory']:AddItem(src, item, amount, metadata)
         end
-        Core.Items.GetImagePath = function(itemName)
-            return ('nui://qs-inventory/html/images/%s.png'):format(itemName)
-        end
         Core.Items.GetItemLabel = function(itemName) return nil end
         Core.Items.ImageBasePath = 'nui://qs-inventory/html/images/'
     end
 
-    -- Fallback if no function was assigned
-    if not Core.Items.GetImagePath then
-        Core.Items.GetImagePath = function(itemName)
-            return ('nui://qb-inventory/html/images/%s.png'):format(itemName)
-        end
-        Core.Items.ImageBasePath = 'nui://qb-inventory/html/images/'
-    end
+    -- (Shared Fallback is now handled in shared/exports.lua)
     if not Core.Items.GetItemLabel then
         Core.Items.GetItemLabel = function(itemName) 
             -- Try to derive a clean label from the name as a last resort

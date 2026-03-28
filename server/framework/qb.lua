@@ -42,6 +42,18 @@ local function InitializeQB()
         return player and player.PlayerData.job or nil
     end
 
+    Core.Player.HasJob = function(src, jobName, level)
+        local job = Core.Player.GetJob(src)
+        if not job or not jobName then return false end
+        if string.lower(job.name or '') ~= string.lower(jobName) then return false end
+
+        if level ~= nil then
+            return tonumber(job.grade and job.grade.level or job.grade or 0) >= tonumber(level)
+        end
+
+        return true
+    end
+
     Core.Player.IsOnDuty = function(src)
         local player = QBCore.Functions.GetPlayer(src)
         return player and player.PlayerData.job.onduty or false
@@ -50,70 +62,97 @@ local function InitializeQB()
     Core.Player.HasLicense = function(src, license)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
-        return player.PlayerData.metadata and player.PlayerData.metadata['licences'] and player.PlayerData.metadata['licences'][license]
+        local metadata = player.PlayerData.metadata
+        if not metadata then return false end
+        
+        local hasLicense = (metadata['licences'] and metadata['licences'][license]) or (metadata['licenses'] and metadata['licenses'][license])
+        return hasLicense == true
     end
 
     -- --- MONEY ---
     Core.Money.GetMoney = function(src, account)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return 0 end
-        
+
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
+
         -- Priority Check: DjonStNix-Banking
-        if GetResourceState('DjonStNix-Banking') == 'started' then
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' then
             local citizenid = Core.Player.GetIdentifier(src)
-            local accountId = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            local accountId = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
             if accountId then
                 return exports['DjonStNix-Banking']:GetBalance(accountId) / 100 -- Convert cents to dollars
             end
         end
 
-        return player.PlayerData.money[account or 'bank'] or 0
+        return player.PlayerData.money[moneyType] or 0
     end
 
-    Core.Money.AddMoney = function(src, account, amount, reason)
+    Core.Money.AddMoney = function(src, account, amount, reason, metadata)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
 
         -- Priority Check: DjonStNix-Banking
-        if GetResourceState('DjonStNix-Banking') == 'started' then
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' and not (metadata and metadata.skipBankingSync) then
             local citizenid = Core.Player.GetIdentifier(src)
-            local targetAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            local targetAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
             
             pcall(function()
                 exports['DjonStNix-Banking']:ProcessTransaction(
-                    nil, targetAcc, amount * 100, 'deposit', { reason = reason or "Bridge Deposit" }
+                    nil, targetAcc, amount * 100, 'deposit', metadata or { reason = reason or "Bridge Deposit" }
                 )
             end)
             -- We still sync with framework for secondary storage/UI compatibility
         end
 
-        return player.Functions.AddMoney(account or 'bank', amount, reason or "djonstnix-bridge-deposit")
+        return player.Functions.AddMoney(moneyType, amount, reason or "djonstnix-bridge-deposit")
     end
 
-    Core.Money.RemoveMoney = function(src, account, amount, reason)
+    Core.Money.RemoveMoney = function(src, account, amount, reason, metadata)
         local player = QBCore.Functions.GetPlayer(src)
         if not player then return false end
-        if player.PlayerData.money[account or 'bank'] < amount then return false end
+        local moneyType = account == 'checking' and 'bank' or (account or 'bank')
+        local bankAccountType = moneyType == 'savings' and 'savings' or ((moneyType == 'bank' or moneyType == 'checking') and 'checking' or nil)
+        if player.PlayerData.money[moneyType] < amount then return false end
 
         -- Priority Check: DjonStNix-Banking
-        if GetResourceState('DjonStNix-Banking') == 'started' then
+        if bankAccountType and GetResourceState('DjonStNix-Banking') == 'started' and not (metadata and metadata.skipBankingSync) then
             local citizenid = Core.Player.GetIdentifier(src)
-            local sourceAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, account or 'checking')
+            local sourceAcc = exports['DjonStNix-Banking']:GetAccountByCitizenId(citizenid, bankAccountType)
             
+            -- Strict Enforcement for Bank Accounts
+            local meta = metadata or { reason = reason or "General Purchase" }
+            if bankAccountType == 'checking' and not meta.receipt then
+                local invokingResource = GetInvokingResource() or "Unknown"
+                print("^1[DjonStNix-Bridge] CRITICAL WARNING: Bank transaction missing receipt! Resource: " .. invokingResource .. "^7")
+                
+                -- Construct fallback receipt as per spec
+                meta.receipt = {
+                    source = "Unknown Transaction",
+                    items = { { name = "Transaction", quantity = 1, unitPrice = amount, total = amount } },
+                    subtotal = amount,
+                    tax = 0,
+                    total = amount,
+                    date = os.date("%Y-%m-%d %H:%M:%S"),
+                    flagged_fallback = true
+                }
+            end
+
             local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(
-                sourceAcc, nil, amount * 100, 'withdraw', { reason = reason or "Bridge Withdraw" }
+                sourceAcc, nil, amount * 100, 'withdraw', meta
             )
             if not success then return false end
             -- Framework sync happens below
         end
 
-        return player.Functions.RemoveMoney(account or 'bank', amount, reason or "djonstnix-bridge-withdraw")
+        return player.Functions.RemoveMoney(moneyType, amount, reason or "djonstnix-bridge-withdraw")
     end
 
     Core.Money.GetBalance = function(src, account)
-        local player = QBCore.Functions.GetPlayer(src)
-        if not player then return 0 end
-        return player.PlayerData.money[account or 'bank'] or 0
+        return Core.Money.GetMoney(src, account)
     end
 
     -- --- UI ---
@@ -136,6 +175,16 @@ local function InitializeQB()
 
     Core.Items.GetItemData = function(itemName)
         return QBCore.Shared.Items[itemName] or nil
+    end
+
+    Core.Items.GetItemCount = function(src, item)
+        if GetResourceState('ox_inventory') == 'started' then
+            return exports.ox_inventory:Search(src, 'count', item) or 0
+        end
+        local player = QBCore.Functions.GetPlayer(src)
+        if not player then return 0 end
+        local itemData = player.Functions.GetItemByName(item)
+        return itemData and itemData.amount or 0
     end
 
     Core.Items.GetInventory = function(src)
@@ -210,18 +259,30 @@ local function InitializeQB()
         QBCore.Functions.TriggerCallback(name, source, cb, ...)
     end
 
+    Core.Functions.GetPlayer = function(src)
+        return Core.Player.GetPlayer(src)
+    end
+
+    Core.Functions.GetPlayers = function()
+        return Core.Player.GetPlayers()
+    end
+
+    Core.Functions.GetPlayerData = function(src)
+        return Core.Player.GetPlayerData(src)
+    end
+
     -- --- CONVENIENCE WRAPPERS ---
     -- These allow downstream scripts to use short-form calls  
     Core.Notify = function(src, msg, type)
         TriggerClientEvent('QBCore:Notify', src, msg, type)
     end
 
-    Core.RemoveMoney = function(src, account, amount, reason)
-        return Core.Money.RemoveMoney(src, account, amount, reason)
+    Core.RemoveMoney = function(src, account, amount, reason, metadata)
+        return Core.Money.RemoveMoney(src, account, amount, reason, metadata)
     end
 
-    Core.AddMoney = function(src, account, amount, reason)
-        return Core.Money.AddMoney(src, account, amount, reason)
+    Core.AddMoney = function(src, account, amount, reason, metadata)
+        return Core.Money.AddMoney(src, account, amount, reason, metadata)
     end
 
     Core.Player.GetLicense = function(src)
@@ -233,7 +294,103 @@ local function InitializeQB()
         end
         return nil
     end
+
+    -- --- BANKING COMPATIBILITY (qb-banking) ---
+    -- The Bridge handles framework-native callbacks so the module remains clean.
+    
+    QBCore.Functions.CreateCallback('qb-banking:server:openBank', function(source, cb)
+        if GetResourceState('DjonStNix-Banking') ~= 'started' then return cb({}, {}, {}) end
+        local identifier = Core.Player.GetIdentifier(source)
+        local data = exports['DjonStNix-Banking']:GetPlayerDashboardData(identifier, source)
+        
+        local legacyAccounts = {}
+        local legacyStatements = {}
+
+        if data.personal then
+            table.insert(legacyAccounts, {
+                account_name = 'checking',
+                account_type = 'checking',
+                account_balance = data.personal.balance / 100
+            })
+            legacyStatements['checking'] = {}
+            for _, tx in ipairs(data.transactions or {}) do
+                table.insert(legacyStatements['checking'], {
+                    amount = tx.amount / 100,
+                    reason = tx.metadata and tx.metadata.reason or "Transaction",
+                    statement_type = tx.action_type,
+                    date = tx.created_at_ms or (os.time() * 1000)
+                })
+            end
+        end
+
+        for _, bus in ipairs(data.businesses or {}) do
+            table.insert(legacyAccounts, {
+                account_name = bus.accountId,
+                account_type = 'job',
+                account_balance = bus.balance / 100,
+                citizenid = identifier
+            })
+        end
+
+        cb(legacyAccounts, legacyStatements, QBCore.Functions.GetPlayer(source).PlayerData)
+    end)
+
+    QBCore.Functions.CreateCallback('qb-banking:server:openATM', function(source, cb)
+        if GetResourceState('DjonStNix-Banking') ~= 'started' then return cb({}, {}, {}) end
+        local identifier = Core.Player.GetIdentifier(source)
+        local bankCards = QBCore.Functions.GetPlayer(source).Functions.GetItemsByName('bank_card')
+        local symbols = {}
+        if bankCards then
+            for _, card in ipairs(bankCards) do
+                if card.info and card.info.cardPin then table.insert(symbols, card.info.cardPin) end
+            end
+        end
+
+        local data = exports['DjonStNix-Banking']:GetPlayerDashboardData(identifier, source)
+        local legacyAccounts = {}
+        if data.personal then
+            table.insert(legacyAccounts, {
+                account_name = 'checking',
+                account_type = 'checking',
+                account_balance = data.personal.balance / 100
+            })
+        end
+
+        cb(legacyAccounts, QBCore.Functions.GetPlayer(source).PlayerData, symbols)
+    end)
+
+    QBCore.Functions.CreateCallback('qb-banking:server:withdraw', function(source, cb, data)
+        if GetResourceState('DjonStNix-Banking') ~= 'started' then return cb({success=false}) end
+        local amountCents = math.floor(tonumber(data.amount) * 100)
+        local accountId = data.accountName == 'checking' and nil or data.accountName
+        
+        local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(accountId, nil, amountCents, 'withdraw', { reason = data.reason or "ATM Withdrawal" })
+        if success then
+            Core.Money.AddMoney(source, 'cash', tonumber(data.amount), "ATM Withdrawal")
+            Core.Money.RemoveMoney(source, 'bank', tonumber(data.amount), "ATM Withdrawal", { skipBankingSync = true })
+            cb({ success = true })
+        else
+            cb({ success = false, message = msg })
+        end
+    end)
+
+    QBCore.Functions.CreateCallback('qb-banking:server:deposit', function(source, cb, data)
+        if GetResourceState('DjonStNix-Banking') ~= 'started' then return cb({success=false}) end
+        local amountCents = math.floor(tonumber(data.amount) * 100)
+        local accountId = data.accountName == 'checking' and nil or data.accountName
+        if Core.Money.GetBalance(source, 'cash') < tonumber(data.amount) then return cb({success=false, message="Insufficient Cash"}) end
+
+        local success, msg = exports['DjonStNix-Banking']:ProcessTransaction(nil, accountId, amountCents, 'deposit', { reason = data.reason or "ATM Deposit" })
+        if success then
+            Core.Money.RemoveMoney(source, 'cash', tonumber(data.amount), "ATM Deposit")
+            Core.Money.AddMoney(source, 'bank', tonumber(data.amount), "ATM Deposit", { skipBankingSync = true })
+            cb({ success = true })
+        else
+            cb({ success = false, message = msg })
+        end
+    end)
 end
+
 
 if GetFramework() == 'qb' then
     InitializeQB()

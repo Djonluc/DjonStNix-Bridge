@@ -53,8 +53,20 @@ lua54 'yes'
 
 exports {
     'GetCore',
+    'GetCoreObject',
+    'GetFrameworkObject',
     'GetFeatures',
+    'Notify',
+    'IsAdmin',
+    'IsPlayerAdmin',
     'SecureHandler',
     'ValidateInput',
-    'GetIdentifier'
+    'GetIdentifier',
+    'Emit',
+    'On',
+    'BroadcastEvent',
+    'LogBankTransaction',
+    'ProcessBankTransaction',
+    'ChargeBankAccount',
+    'CreateReceipt'
 }

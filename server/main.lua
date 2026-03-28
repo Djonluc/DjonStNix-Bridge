@@ -13,6 +13,15 @@
 -- DjonStNix-Bridge MASTER SERVER ENTRY
 -- ==================================================
 
+local function GetStartedResource(candidates)
+    for _, resourceName in ipairs(candidates) do
+        if GetResourceState(resourceName) == 'started' then
+            return resourceName
+        end
+    end
+    return nil
+end
+
 CreateThread(function()
     Wait(100)
     Core.Utils.PrintBanner("DjonStNix-Bridge", "2.0.0")
@@ -81,10 +90,10 @@ CreateThread(function()
         end
 
         checkDep('DjonStNix-Banking')
-        checkDep('djonstnix-economy')
+        checkDep(GetStartedResource({'DjonStNix-economy', 'djonstnix-economy', 'DjonStNix-Economy'}) or 'DjonStNix-economy')
         checkDep('DjonStNix-Shops')
-        checkDep('djonstnix-vehicles')
-        checkDep('djonstnix-analytics')
+        checkDep(GetStartedResource({'DjonStNix-vehicles', 'djonstnix-vehicles'}) or 'DjonStNix-vehicles')
+        checkDep(GetStartedResource({'DjonStNix-analytics', 'djonstnix-analytics'}) or 'DjonStNix-analytics')
         checkDep('DjonStNix-Government')
         checkDep('DjonStNix-AssetRegistry')
         print("^4====================================^7\n")
@@ -127,7 +136,7 @@ exports('GetPlayerProfile', function(citizenid)
     -- 1. Bank Accounts & Balances
     if GetResourceState('DjonStNix-Banking') == 'started' then
         pcall(function()
-            local accs = MySQL.query.await('SELECT account_id, account_name, account_type, balance FROM djonstnix_bank_accounts WHERE owner_id = ?', { citizenid })
+            local accs = MySQL.query.await('SELECT account_id, account_name, account_type, balance FROM djonstnix_bank_accounts WHERE citizenid = ?', { citizenid })
             profile.accounts = accs or {}
         end)
     end
@@ -135,7 +144,11 @@ exports('GetPlayerProfile', function(citizenid)
     -- 2. Unpaid Invoices
     if GetResourceState('DjonStNix-Banking') == 'started' then
         pcall(function()
-            local invs = MySQL.query.await('SELECT invoice_id, total, issuer_type, issuer_id, status, created_at FROM djonstnix_invoices WHERE target_id = ? AND status = "pending"', { citizenid })
+            local invs = MySQL.query.await([[
+                SELECT invoice_id, amount, society, biller_citizenid, status, created_at
+                FROM djonstnix_bank_invoices
+                WHERE billed_citizenid = ? AND status = "unpaid"
+            ]], { citizenid })
             profile.invoices = invs or {}
         end)
     end
@@ -207,11 +220,11 @@ RegisterCommand('dsn-status', function(source, args, rawCommand)
     local resources = {
         'DjonStNix-Bridge',
         'DjonStNix-Banking',
-        'djonstnix-economy',
+        GetStartedResource({'DjonStNix-economy', 'djonstnix-economy', 'DjonStNix-Economy'}) or 'DjonStNix-economy',
         'DjonStNix-Shops',
         'DjonStNix-Government',
         'DjonStNix-Launderer',
-        'djonstnix-vehicles'
+        GetStartedResource({'DjonStNix-vehicles', 'djonstnix-vehicles'}) or 'DjonStNix-vehicles'
     }
     
     for _, res in ipairs(resources) do
@@ -249,4 +262,29 @@ end, false)
 --- Usage: exports['DjonStNix-Bridge']:GetIdentifier(source)
 exports('GetIdentifier', function(src)
     return Core.Player.GetIdentifier(src)
+end)
+
+exports('Notify', function(src, message, notifyType)
+    if Core and Core.UI and Core.UI.Notify then
+        Core.UI.Notify(src, message, notifyType)
+        return true
+    end
+    return false
+end)
+
+exports('IsAdmin', function(src)
+    if not src then return false end
+    if Core and Core.Player then
+        if Core.Player.IsAdmin and Core.Player.IsAdmin(src) then
+            return true
+        end
+        if Core.Player.HasPermission and Core.Player.HasPermission(src, { 'admin', 'god', 'superadmin' }) then
+            return true
+        end
+    end
+    return false
+end)
+
+exports('IsPlayerAdmin', function(src)
+    return exports['DjonStNix-Bridge']:IsAdmin(src)
 end)

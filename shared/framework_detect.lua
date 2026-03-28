@@ -46,3 +46,13 @@ end
 exports('GetFramework', function()
     return GetFramework()
 end)
+
+exports('GetFrameworkObject', function()
+    return GetFrameworkObject()
+end)
+
+-- QBCore-style compatibility alias so downstream resources can ask Bridge
+-- for the same core object shape they would normally get from qb-core.
+exports('GetCoreObject', function()
+    return GetFrameworkObject()
+end)
