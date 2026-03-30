@@ -98,20 +98,25 @@ function SecureHandler(fn, opts)
     opts = opts or {}
     return function(...)
         local src = source
-        if not src or src == 0 then
-            Core.Log('security', "Blocked non-player source on secure handler")
+        if not src then
             return false, "invalid source"
         end
 
-        -- Token bucket check
-        if not TakeToken(src, opts.name or 'secure') then
-            return false, "rate limited"
+        -- Skip rate limiting for source 0 (Internal/Server Console)
+        if src ~= 0 then
+            -- Token bucket check
+            if not TakeToken(src, opts.name or 'secure') then
+                return false, "rate limited"
+            end
         end
 
         -- Execute handler in protected call
         local ok, result = pcall(fn, src, ...)
         if not ok then
-            Core.Log('security', ("SecureHandler error for player %s: %s"):format(src, tostring(result)))
+            local err = tostring(result)
+            if not string.find(err, "function reference") then
+                print("^1[DjonStNix-Bridge] Script Error in Hook (" .. tostring(opts.name or 'secure') .. "): ^7" .. err)
+            end
             return false, "handler error"
         end
 
