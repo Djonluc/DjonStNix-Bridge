@@ -70,6 +70,80 @@ CreateThread(function()
         return false
     end
 
+    -- [[ PHONE INTEGRATION ]] --
+    Core.Phone.SendMail = function(src, data)
+        if not src or not data then return end
+        local p = Config.Phone
+        if p == "auto" then
+            if IsResourceRunning('qb-phone') then p = "qb-phone"
+            elseif IsResourceRunning('lb-phone') then p = "lb-phone"
+            elseif IsResourceRunning('qs-smartphone') then p = "qs-phone"
+            elseif IsResourceRunning('gksphone') then p = "gksphone"
+            else p = "none" end
+        end
+
+        local sender = data.sender or Config.PhoneSettings.DefaultSender
+        local subject = data.subject or Config.PhoneSettings.DefaultSubject
+        local message = data.message or "No message content."
+
+        if p == "qb-phone" then
+            TriggerClientEvent('qb-phone:client:NewMail', src, {
+                sender = sender,
+                subject = subject,
+                message = message,
+                button = data.button or {}
+            })
+        elseif p == "lb-phone" then
+            exports["lb-phone"]:SendMail(src, {
+                sender = sender,
+                subject = subject,
+                message = message,
+            })
+        elseif p == "qs-phone" then
+            exports['qs-smartphone']:SendEmail(src, {
+                sender = sender,
+                subject = subject,
+                message = message,
+                image = data.image or '/html/img/mail.png'
+            })
+        elseif p == "gksphone" then
+            TriggerServerEvent('gksphone:NewMail', src, sender, subject, message)
+        end
+    end
+
+    Core.Phone.SendNotification = function(src, data)
+        if not src or not data then return end
+        local p = Config.Phone
+        if p == "auto" then
+            if IsResourceRunning('qb-phone') then p = "qb-phone"
+            elseif IsResourceRunning('lb-phone') then p = "lb-phone"
+            elseif IsResourceRunning('qs-smartphone') then p = "qs-phone"
+            elseif IsResourceRunning('gksphone') then p = "gksphone"
+            else p = "none" end
+        end
+
+        local title = data.title or Config.PhoneSettings.DefaultSender
+        local content = data.content or data.message or ""
+        local icon = data.icon or Config.PhoneSettings.DefaultIcon
+
+        if p == "qb-phone" then
+            TriggerClientEvent('qb-phone:client:CustomNotification', src, title, content, icon, '#f4b400', 8000)
+        elseif p == "lb-phone" then
+            exports["lb-phone"]:SendNotification(src, {
+                app = "System",
+                title = title,
+                content = content,
+                duration = 8000
+            })
+        elseif p == "qs-phone" then
+            TriggerClientEvent('qs-smartphone:client:CustomNotification', src, {
+                title = title,
+                text = content,
+                icon = icon
+            })
+        end
+    end
+
     Core.Ready = true
     print(("^2[DjonStNix-Bridge]^7 v%s — Core.Ready is now TRUE."):format(Config.Version or "1.0.0"))
 

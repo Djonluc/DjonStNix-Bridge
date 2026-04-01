@@ -31,6 +31,7 @@ function InitializeCore()
     Core.Logging = {}
     Core.Registry = {}
     Core.Plugins = {}
+    Core.Phone = {}
     Core.Utils = {}
     Core.UI = {
         Notify = function(src, msg, type) 

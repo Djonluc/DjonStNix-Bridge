@@ -63,3 +63,14 @@ Config.Security = {
 -- Branding
 Config.Prefix = "^4[DjonStNix-Bridge]^7"
 Config.NotificationIcon = "fas fa-shield-alt"
+
+-- Phone Settings
+-- Options: "auto", "qb-phone", "lb-phone", "qs-phone", "gksphone", "none"
+Config.Phone = "auto"
+
+-- Default Email/Notification Settings for the Ecosystem
+Config.PhoneSettings = {
+    DefaultSender = "Underworld Contact",
+    DefaultSubject = "Secure Message",
+    DefaultIcon = "fas fa-envelope-open-text"
+}

@@ -16,6 +16,10 @@ function RefreshIntegrations()
     CheckIntegration('qs-inventory')
     CheckIntegration('ox_target')
     CheckIntegration('qb-target')
+    CheckIntegration('qb-phone')
+    CheckIntegration('lb-phone')
+    CheckIntegration('qs-smartphone')
+    CheckIntegration('gksphone')
 end
 
 function IsResourceRunning(resource)
