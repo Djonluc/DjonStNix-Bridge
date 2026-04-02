@@ -26,6 +26,8 @@ shared_scripts {
 }
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
+    'server/migration.lua',
     'server/framework/qb.lua',
     'server/framework/qbox.lua',
     'server/framework/esx.lua',
