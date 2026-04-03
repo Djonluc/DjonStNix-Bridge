@@ -75,10 +75,10 @@ CreateThread(function()
         if not src or not data then return end
         local p = Config.Phone
         if p == "auto" then
-            if IsResourceRunning('qb-phone') then p = "qb-phone"
-            elseif IsResourceRunning('lb-phone') then p = "lb-phone"
-            elseif IsResourceRunning('qs-smartphone') then p = "qs-phone"
-            elseif IsResourceRunning('gksphone') then p = "gksphone"
+            if Core.IsResourceRunning('qb-phone') then p = "qb-phone"
+            elseif Core.IsResourceRunning('lb-phone') then p = "lb-phone"
+            elseif Core.IsResourceRunning('qs-smartphone') then p = "qs-phone"
+            elseif Core.IsResourceRunning('gksphone') then p = "gksphone"
             else p = "none" end
         end
 
@@ -115,10 +115,10 @@ CreateThread(function()
         if not src or not data then return end
         local p = Config.Phone
         if p == "auto" then
-            if IsResourceRunning('qb-phone') then p = "qb-phone"
-            elseif IsResourceRunning('lb-phone') then p = "lb-phone"
-            elseif IsResourceRunning('qs-smartphone') then p = "qs-phone"
-            elseif IsResourceRunning('gksphone') then p = "gksphone"
+            if Core.IsResourceRunning('qb-phone') then p = "qb-phone"
+            elseif Core.IsResourceRunning('lb-phone') then p = "lb-phone"
+            elseif Core.IsResourceRunning('qs-smartphone') then p = "qs-phone"
+            elseif Core.IsResourceRunning('gksphone') then p = "gksphone"
             else p = "none" end
         end
 
