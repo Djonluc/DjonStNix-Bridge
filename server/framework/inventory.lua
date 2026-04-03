@@ -26,6 +26,9 @@ local function InitializeInventory()
             if items and items[itemName] then return items[itemName].label end
             return nil
         end
+        Core.Items.GetInventory = function(src)
+            return exports.ox_inventory:GetInventoryItems(src)
+        end
         Core.Items.ImageBasePath = 'nui://ox_inventory/web/images/'
 
     -- --- QB INVENTORY ---
@@ -66,6 +69,10 @@ local function InitializeInventory()
             if shared then return shared.label end
             return nil
         end
+        Core.Items.GetInventory = function(src)
+            local player = QBCore.Functions.GetPlayer(src)
+            return player and player.PlayerData.items or {}
+        end
         Core.Items.ImageBasePath = 'nui://qb-inventory/html/images/'
 
     -- --- QS INVENTORY ---
@@ -74,6 +81,9 @@ local function InitializeInventory()
             return exports['qs-inventory']:AddItem(src, item, amount, metadata)
         end
         Core.Items.GetItemLabel = function(itemName) return nil end
+        Core.Items.GetInventory = function(src)
+            return exports['qs-inventory']:GetUserInventory(src)
+        end
         Core.Items.ImageBasePath = 'nui://qs-inventory/html/images/'
     end
 
