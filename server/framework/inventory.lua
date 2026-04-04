@@ -3,31 +3,44 @@ local function InitializeInventory()
 
     -- --- OX INVENTORY ---
     if IsResourceRunning('ox_inventory') then
+        local ox = exports.ox_inventory
         Core.Items.AddItem = function(src, item, amount, metadata)
-            return exports.ox_inventory:AddItem(src, item, amount, metadata)
+            return ox:AddItem(src, item, amount, metadata)
         end
         Core.Items.RemoveItem = function(src, item, amount)
-            return exports.ox_inventory:RemoveItem(src, item, amount)
+            return ox:RemoveItem(src, item, amount)
         end
         Core.Items.HasItem = function(src, item)
-            return exports.ox_inventory:GetItemCount(src, item) >= 1
+            -- Support both legacy and modern versions
+            local count = 0
+            if ox.GetItemCount then
+                count = ox:GetItemCount(src, item)
+            else
+                count = ox:GetItem(src, item, nil, true)
+            end
+            return count and count >= 1 or false
         end
         Core.Items.GetItemData = function(src, item, metadata)
-            return exports.ox_inventory:GetItem(src, item, metadata)
+            return ox:GetItem(src, item, metadata)
         end
         Core.Items.GetItemsByType = function(src, type)
-            return exports.ox_inventory:GetSlotsWithItem(src, type)
+            if ox.GetSlotsWithItem then
+                return ox:GetSlotsWithItem(src, type) or {}
+            end
+            return ox:Search(src, 'slots', type) or {}
         end
         Core.Items.GetItemCount = function(src, item)
-            return exports.ox_inventory:GetItemCount(src, item)
+            if ox.GetItemCount then
+                return ox:GetItemCount(src, item) or 0
+            end
+            return ox:GetItem(src, item, nil, true) or 0
         end
         Core.Items.GetItemLabel = function(itemName)
-            local items = exports.ox_inventory:Items()
-            if items and items[itemName] then return items[itemName].label end
-            return nil
+            local item = ox:Items(itemName)
+            return item and item.label or nil
         end
         Core.Items.GetInventory = function(src)
-            return exports.ox_inventory:GetInventoryItems(src)
+            return ox:GetInventoryItems(src)
         end
         Core.Items.ImageBasePath = 'nui://ox_inventory/web/images/'
 
