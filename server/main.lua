@@ -87,12 +87,15 @@ CreateThread(function()
         local message = data.message or "No message content."
 
         if p == "qb-phone" then
-            TriggerClientEvent('qb-phone:client:NewMail', src, {
-                sender = sender,
-                subject = subject,
-                message = message,
-                button = data.button or {}
-            })
+            local citizenid = Core.Player.GetIdentifier(src)
+            if citizenid then
+                exports['qb-phone']:sendNewMailToOffline(citizenid, {
+                    sender = sender,
+                    subject = subject,
+                    message = message,
+                    button = data.button or {}
+                })
+            end
         elseif p == "lb-phone" then
             exports["lb-phone"]:SendMail(src, {
                 sender = sender,
@@ -127,7 +130,7 @@ CreateThread(function()
         local icon = data.icon or Config.PhoneSettings.DefaultIcon
 
         if p == "qb-phone" then
-            TriggerClientEvent('qb-phone:client:CustomNotification', src, title, content, icon, '#f4b400', 8000)
+            TriggerClientEvent('qb-phone:client:CustomNotification', src, title, content, icon, '#ffc107', 8000)
         elseif p == "lb-phone" then
             exports["lb-phone"]:SendNotification(src, {
                 app = "System",
@@ -140,6 +143,56 @@ CreateThread(function()
                 title = title,
                 text = content,
                 icon = icon
+            })
+        end
+    end
+
+    Core.Phone.SendSMS = function(src, data)
+        if not src or not data then return end
+        local p = Config.Phone
+        if p == "auto" then
+            if Core.IsResourceRunning('qb-phone') then p = "qb-phone"
+            elseif Core.IsResourceRunning('lb-phone') then p = "lb-phone"
+            elseif Core.IsResourceRunning('qs-smartphone') then p = "qs-phone"
+            elseif Core.IsResourceRunning('gksphone') then p = "gksphone"
+            else p = "none" end
+        end
+
+        local sender = data.sender or Config.PhoneSettings.DefaultSender
+        local message = data.message or ""
+
+        if p == "qb-phone" then
+            local Player = QBCore.Functions.GetPlayer(src)
+            if not Player then return end
+            local citizenid = Player.PlayerData.citizenid
+            
+            local result = MySQL.query.await('SELECT * FROM phone_messages WHERE citizenid = ? AND number = ?', { citizenid, sender })
+            local ChatMessages = {}
+            if result[1] then ChatMessages = json.decode(result[1].messages) end
+            
+            table.insert(ChatMessages, {
+                message = message,
+                time = os.time() * 1000,
+                sender = sender,
+                type = "messenger"
+            })
+            
+            if result[1] then
+                MySQL.update('UPDATE phone_messages SET messages = ? WHERE citizenid = ? AND number = ?', { json.encode(ChatMessages), citizenid, sender })
+            else
+                MySQL.insert('INSERT INTO phone_messages (citizenid, number, messages) VALUES (?, ?, ?)', { citizenid, sender, json.encode(ChatMessages) })
+            end
+            
+            TriggerClientEvent('qb-phone:client:UpdateMessages', src, ChatMessages, sender, not result[1])
+        elseif p == "lb-phone" then
+            exports["lb-phone"]:SendMessage(src, {
+                phoneNumber = sender,
+                content = message,
+            })
+        elseif p == "qs-phone" then
+            TriggerServerEvent('qs-smartphone:server:sendNewMessage', {
+                phone = sender,
+                message = message
             })
         end
     end

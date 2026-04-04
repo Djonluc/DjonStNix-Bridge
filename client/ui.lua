@@ -109,9 +109,28 @@ Core.UI.GetItemImage = function(itemName)
     return "nui://qb-inventory/html/images/" .. image -- Final fallback
 end
 -- --- DRAW TEXT / UI ---
-Core.UI.DrawText = function(text, position)
+local ThemeColors = {
+    ["premium-gold"] = "#C5A059",
+    ["success"] = "#48BB78",
+    ["error"] = "#F56565",
+    ["info"] = "#4299E1"
+}
+
+Core.UI.DrawText = function(text, position, color)
+    local style = nil
+    if color then
+        local hex = ThemeColors[color] or color
+        style = {
+            backgroundColor = hex,
+            color = 'white'
+        }
+    end
+
     if GetResourceState('ox_lib') == 'started' then
-        exports.ox_lib:showTextUI(text, { position = position or 'left-center' })
+        exports.ox_lib:showTextUI(text, { 
+            position = position or 'left-center',
+            style = style
+        })
     elseif GetResourceState('qb-core') == 'started' then
         exports['qb-core']:DrawText(text, position or 'left')
     else
