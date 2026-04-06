@@ -148,3 +148,17 @@ Core.UI.HideText = function()
         exports['qb-core']:HideText()
     end
 end
+
+-- --- MINIGAMES ---
+Core.UI.Thermite = function(cb, time, grid, errors)
+    if GetResourceState('ps_lib') == 'started' then
+        exports.ps_lib:Thermite(cb, time, grid, errors)
+    elseif GetResourceState('ps-ui') == 'started' then
+        exports['ps-ui']:Thermite(cb, time, grid, errors)
+    elseif GetResourceState('ox_lib') == 'started' then
+        local success = exports.ox_lib:skillCheck({'easy', 'easy', 'medium', 'easy'}, {'w', 'a', 's', 'd'})
+        if cb then cb(success) end
+    else
+        if cb then cb(true) end
+    end
+end
