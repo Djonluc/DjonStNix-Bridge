@@ -172,13 +172,20 @@ local function InitializeESX()
     Core.Items.AddItem = function(src, item, amount, metadata)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
+        -- Prefer ox_inventory for metadata support (weapon serials, quality, etc.)
+        if GetResourceState('ox_inventory') == 'started' then
+            return exports.ox_inventory:AddItem(src, item, amount, metadata)
+        end
         player.addInventoryItem(item, amount)
         return true
     end
 
-    Core.Items.RemoveItem = function(src, item, amount)
+    Core.Items.RemoveItem = function(src, item, amount, metadata)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
+        if GetResourceState('ox_inventory') == 'started' then
+            return exports.ox_inventory:RemoveItem(src, item, amount, metadata)
+        end
         player.removeInventoryItem(item, amount)
         return true
     end
@@ -186,12 +193,19 @@ local function InitializeESX()
     Core.Items.HasItem = function(src, item)
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
+        if GetResourceState('ox_inventory') == 'started' then
+            local search = exports.ox_inventory:Search(src, 'count', item)
+            return search and search >= 1
+        end
         local invItem = player.getInventoryItem(item)
         return invItem and invItem.count >= 1
     end
 
     Core.Items.GetInventory = function(src)
         local player = ESX.GetPlayerFromId(src)
+        if GetResourceState('ox_inventory') == 'started' then
+            return exports.ox_inventory:GetInventoryItems(src) or {}
+        end
         return player and player.getInventory() or {}
     end
 
