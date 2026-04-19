@@ -219,6 +219,20 @@ local function InitializeQB()
         return QBCore.Functions.HasPermission(src, 'admin') or QBCore.Functions.HasPermission(src, 'god')
     end
 
+    Core.Player.SetMetaData = function(src, key, value)
+        local player = QBCore.Functions.GetPlayer(src)
+        if player then
+            player.Functions.SetMetaData(key, value)
+            return true
+        end
+        return false
+    end
+
+    Core.Player.GetMetaData = function(src, key)
+        local player = QBCore.Functions.GetPlayer(src)
+        return player and player.PlayerData.metadata[key] or nil
+    end
+
     -- --- VEHICLE ---
     Core.Vehicle.GetOwnedVehicles = function(identifier)
         return MySQL.query.await('SELECT * FROM player_vehicles WHERE citizenid = ?', {identifier})
@@ -293,6 +307,10 @@ local function InitializeQB()
             end
         end
         return nil
+    end
+
+    Core.Player.GetDutyCount = function(jobName)
+        return QBCore.Functions.GetDutyCount(jobName)
     end
 
     -- --- BANKING COMPATIBILITY (qb-banking) ---

@@ -36,7 +36,41 @@ function GetFrameworkObject()
     elseif fw == 'qbox' then
         FrameworkObject = exports.qbx_core:GetCoreObject()
     elseif fw == 'esx' then
-        FrameworkObject = exports['es_extended']:getSharedObject()
+        -- Try modern export first
+        local ok, obj = pcall(function()
+            return exports['es_extended']:getSharedObject()
+        end)
+        if ok and obj then
+            FrameworkObject = obj
+        else
+            -- Fallback: classic event-based retrieval (older ESX versions)
+            local fallbackObj = nil
+            TriggerEvent('esx:getSharedObject', function(esxObj)
+                fallbackObj = esxObj
+            end)
+            if fallbackObj then
+                FrameworkObject = fallbackObj
+            end
+        end
+
+        -- Safety: retry up to 5 seconds if ESX is starting but not ready yet
+        if not FrameworkObject and GetResourceState('es_extended') == 'started' then
+            local retries = 0
+            while not FrameworkObject and retries < 50 do
+                Wait(100)
+                retries = retries + 1
+                local retryOk, retryObj = pcall(function()
+                    return exports['es_extended']:getSharedObject()
+                end)
+                if retryOk and retryObj then
+                    FrameworkObject = retryObj
+                end
+            end
+        end
+
+        if not FrameworkObject then
+            print("^1[DjonStNix-Bridge] CRITICAL: Failed to retrieve ESX shared object after all attempts!^7")
+        end
     end
 
     return FrameworkObject

@@ -25,20 +25,43 @@ local function RegisterFramework()
             QBCore.Functions.CreateClientCallback(name, cb)
         end
     elseif fw == 'esx' then
-        local ESX = exports['es_extended']:getSharedObject()
+        -- Use the hardened GetFrameworkObject which handles retries and fallbacks
+        local ESX = GetFrameworkObject()
 
-        Core.Player.GetPlayerData = function()
-            return ESX.GetPlayerData()
+        -- Safety: if ESX object is still nil, wait for it
+        if not ESX then
+            print("^3[DjonStNix-Bridge] Waiting for ESX shared object on client...^7")
+            local retries = 0
+            while not ESX and retries < 100 do
+                Wait(100)
+                retries = retries + 1
+                ESX = GetFrameworkObject()
+            end
         end
 
-        Core.Player.GetJob = function()
-            local data = ESX.GetPlayerData()
-            return data and data.job or nil
-        end
+        if not ESX then
+            print("^1[DjonStNix-Bridge] CRITICAL: ESX shared object unavailable on client after 10s! Shop interactions will fail.^7")
+            -- Map stubs to prevent nil errors, but functionality will be broken
+            Core.Player.GetPlayerData = function() return nil end
+            Core.Player.GetJob = function() return nil end
+            Core.Functions.TriggerCallback = function(name, cb, ...) 
+                print("^1[DjonStNix-Bridge] ERROR: TriggerCallback called but ESX is not available!^7")
+                cb(nil)
+            end
+        else
+            Core.Player.GetPlayerData = function()
+                return ESX.GetPlayerData()
+            end
 
-        -- --- FUNCTIONS ---
-        Core.Functions.TriggerCallback = function(name, cb, ...)
-            ESX.TriggerServerCallback(name, cb, ...)
+            Core.Player.GetJob = function()
+                local data = ESX.GetPlayerData()
+                return data and data.job or nil
+            end
+
+            -- --- FUNCTIONS ---
+            Core.Functions.TriggerCallback = function(name, cb, ...)
+                ESX.TriggerServerCallback(name, cb, ...)
+            end
         end
     else
         -- Standalone / Fallback

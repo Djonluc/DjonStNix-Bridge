@@ -134,9 +134,9 @@ Core.UI.DrawText = function(text, position, color)
     elseif GetResourceState('qb-core') == 'started' then
         exports['qb-core']:DrawText(text, position or 'left')
     else
-        -- Fallback to native UI if nothing else exists
+        -- Fallback to native help text for ESX/standalone
         BeginTextCommandDisplayHelp("STRING")
-        AddTextComponentScaleform(text)
+        AddTextComponentSubstringPlayerName(text)
         EndTextCommandDisplayHelp(0, false, true, -1)
     end
 end
@@ -146,6 +146,9 @@ Core.UI.HideText = function()
         exports.ox_lib:hideTextUI()
     elseif GetResourceState('qb-core') == 'started' then
         exports['qb-core']:HideText()
+    else
+        -- Fallback: clear native help text for ESX/standalone
+        ClearAllHelpMessages()
     end
 end
 

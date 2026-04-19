@@ -2,7 +2,22 @@ local ESX = nil
 
 local function InitializeESX()
     ESX = GetFrameworkObject()
-    if not ESX then return end
+
+    -- Safety: if ESX object is still nil after GetFrameworkObject retries, wait here
+    if not ESX then
+        print("^3[DjonStNix-Bridge] ESX server: Waiting for shared object...^7")
+        local retries = 0
+        while not ESX and retries < 100 do
+            Wait(100)
+            retries = retries + 1
+            ESX = GetFrameworkObject()
+        end
+    end
+
+    if not ESX then
+        print("^1[DjonStNix-Bridge] CRITICAL: ESX shared object unavailable on server! All ESX functions will be broken.^7")
+        return
+    end
 
     -- Use global Core
 
@@ -65,12 +80,25 @@ local function InitializeESX()
     end
 
     Core.Player.HasLicense = function(src, licenseType)
-        local hasLicense = false
         local p = promise.new()
         TriggerEvent('esx_license:checkLicense', src, licenseType, function(has)
             p:resolve(has)
         end)
         return Citizen.Await(p)
+    end
+
+    Core.Player.SetMetaData = function(src, key, value)
+        -- ESX mapping common ones to status
+        if key == 'stress' then
+            TriggerClientEvent('esx_status:set', src, 'stress', value * 10000)
+            return true
+        end
+        return false
+    end
+
+    Core.Player.GetMetaData = function(src, key)
+        if key == 'stress' then return 0 end
+        return nil
     end
 
     -- --- MONEY ---
@@ -267,6 +295,65 @@ local function InitializeESX()
     Core.AddMoney = function(src, account, amount, reason, metadata)
         return Core.Money.AddMoney(src, account, amount, reason, metadata)
     end
+
+    -- --- FUNCTIONS (CALLBACKS) ---
+    Core.Functions.CreateCallback = function(name, cb)
+        ESX.RegisterServerCallback(name, cb)
+    end
+
+    Core.Functions.TriggerCallback = function(name, source, cb, ...)
+        -- Server-side TriggerCallback is rarely used, but mapped for parity
+        print("^3[DjonStNix-Bridge] Warning: Server-side TriggerCallback called on ESX.^7")
+    end
+
+    -- --- ITEMS (Extended) ---
+    Core.Items.GetItemCount = function(src, item)
+        if GetResourceState('ox_inventory') == 'started' then
+            return exports.ox_inventory:Search(src, 'count', item) or 0
+        end
+        local player = ESX.GetPlayerFromId(src)
+        if not player then return 0 end
+        local invItem = player.getInventoryItem(item)
+        return invItem and invItem.count or 0
+    end
+
+    -- --- PLAYER (Extended) ---
+    Core.Player.GetDutyCount = function(jobName)
+        local count = 0
+        local xPlayers = ESX.GetExtendedPlayers('job', jobName)
+        for _, xPlayer in pairs(xPlayers) do
+            count = count + 1
+        end
+        return count
+    end
+
+    -- --- SOURCE FROM IDENTIFIER ---
+    Core.Player.GetSourceFromIdentifier = function(identifier)
+        local xPlayers = ESX.GetPlayers()
+        for _, playerId in ipairs(xPlayers) do
+            local xPlayer = ESX.GetPlayerFromId(playerId)
+            if xPlayer and xPlayer.identifier == identifier then
+                return playerId
+            end
+        end
+        return nil
+    end
+
+    -- --- PERMISSION HELPERS ---
+    Core.Player.HasPermission = function(src, permList)
+        local player = ESX.GetPlayerFromId(src)
+        if not player then return false end
+        local group = player.getGroup()
+        if type(permList) == "table" then
+            for _, perm in ipairs(permList) do
+                if group == perm then return true end
+            end
+            return false
+        end
+        return group == permList
+    end
+
+    print("^2[DjonStNix-Bridge]^7 ESX server-side module initialized successfully.")
 end
 
 if GetFramework() == 'esx' then
