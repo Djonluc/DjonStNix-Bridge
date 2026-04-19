@@ -4,7 +4,8 @@ local function InitializeInventory()
     -- --- OX INVENTORY ---
     if IsResourceRunning('ox_inventory') then
         local ox = exports.ox_inventory
-        Core.Items.AddItem = function(src, item, amount, metadata)
+        Core.Items.AddItem = function(src, item, amount, metadata, extraMetadata)
+            if extraMetadata ~= nil and metadata == nil then metadata = extraMetadata end
             return ox:AddItem(src, item, amount, metadata)
         end
         Core.Items.RemoveItem = function(src, item, amount)
@@ -47,7 +48,8 @@ local function InitializeInventory()
     -- --- QB INVENTORY ---
     elseif IsResourceRunning('qb-inventory') then
         local QBCore = exports['qb-core']:GetCoreObject()
-        Core.Items.AddItem = function(src, item, amount, metadata)
+        Core.Items.AddItem = function(src, item, amount, metadata, extraMetadata)
+            if extraMetadata ~= nil and metadata == nil then metadata = extraMetadata end
             return exports['qb-inventory']:AddItem(src, item, amount, nil, metadata)
         end
         Core.Items.RemoveItem = function(src, item, amount)
@@ -90,14 +92,48 @@ local function InitializeInventory()
 
     -- --- QS INVENTORY ---
     elseif IsResourceRunning('qs-inventory') then
-        Core.Items.AddItem = function(src, item, amount, metadata)
+        local function GetQSInventory(src)
+            local ok, inventory = pcall(function()
+                return exports['qs-inventory']:GetUserInventory(src)
+            end)
+            return ok and inventory or {}
+        end
+
+        local function GetQSItemCount(src, itemName)
+            local total = 0
+            local inventory = GetQSInventory(src)
+            for _, entry in pairs(inventory or {}) do
+                if type(entry) == 'table' then
+                    local entryName = entry.name or entry.item or entry.itemName
+                    if entryName == itemName then
+                        total = total + (tonumber(entry.amount or entry.count or entry.quantity) or 0)
+                    end
+                end
+            end
+            return total
+        end
+
+        Core.Items.AddItem = function(src, item, amount, metadata, extraMetadata)
+            if extraMetadata ~= nil and metadata == nil then metadata = extraMetadata end
             return exports['qs-inventory']:AddItem(src, item, amount, metadata)
+        end
+        Core.Items.RemoveItem = function(src, item, amount, metadata)
+            local ok, result = pcall(function()
+                return exports['qs-inventory']:RemoveItem(src, item, amount, metadata)
+            end)
+            return ok and result or false
+        end
+        Core.Items.HasItem = function(src, item)
+            return GetQSItemCount(src, item) >= 1
+        end
+        Core.Items.GetItemCount = function(src, item)
+            return GetQSItemCount(src, item)
         end
         Core.Items.GetItemLabel = function(itemName) return nil end
         Core.Items.GetInventory = function(src)
-            return exports['qs-inventory']:GetUserInventory(src)
+            return GetQSInventory(src)
         end
-        Core.Items.ImageBasePath = 'nui://qs-inventory/html/images/'
+        Core.Items.ImageBasePath = 'nui://qs-inventory/html/img/items/'
     end
 
     -- (Shared Fallback is now handled in shared/exports.lua)

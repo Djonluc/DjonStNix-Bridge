@@ -94,12 +94,13 @@ function InitializeCore()
         elseif inv == 'qb' then
             path = "nui://qb-inventory/html/images/%s.png"
         elseif inv == 'qs' then
-            path = "nui://qs-inventory/html/images/%s.png"
+            path = "nui://qs-inventory/html/img/items/%s.png"
         elseif inv == 'esx' then
             path = "nui://inventory/html/img/items/%s.png"
+        elseif Core.Items and Core.Items.ImageBasePath then
+            path = Core.Items.ImageBasePath .. "%s.png"
         else
-            -- Standalone / Fallback to caller's images
-            path = "nui://" .. GetCurrentResourceName() .. "/install/images/%s.png"
+            return ""
         end
         
         return string.format(path, itemName)

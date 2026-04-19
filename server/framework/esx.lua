@@ -33,12 +33,23 @@ local function InitializeESX()
     Core.Player.GetPlayerData = function(src)
         local player = ESX.GetPlayerFromId(src)
         if not player then return nil end
+        local group = nil
+        if player.getGroup then
+            local ok, value = pcall(function()
+                return player.getGroup()
+            end)
+            if ok then group = value end
+        end
         -- Basic normalization for QBCore-like access where possible
         return {
             source = src,
             citizenid = player.identifier,
             job = player.job,
-            charinfo = { firstname = player.get('firstName') or "ESX", lastname = player.get('lastName') or "Player" }
+            charinfo = { firstname = player.get('firstName') or "ESX", lastname = player.get('lastName') or "Player" },
+            group = group,
+            metadata = {
+                group = group
+            }
         }
     end
 
@@ -197,7 +208,8 @@ local function InitializeESX()
     end
 
     -- --- ITEMS ---
-    Core.Items.AddItem = function(src, item, amount, metadata)
+    Core.Items.AddItem = function(src, item, amount, metadata, extraMetadata)
+        if extraMetadata ~= nil and metadata == nil then metadata = extraMetadata end
         local player = ESX.GetPlayerFromId(src)
         if not player then return false end
         -- Prefer ox_inventory for metadata support (weapon serials, quality, etc.)

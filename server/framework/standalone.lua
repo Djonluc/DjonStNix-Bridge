@@ -81,9 +81,10 @@ local function InitializeStandalone()
     Core.Money.GetBalance = function(src, account) return 0 end
 
     -- --- ITEMS ---
-    Core.Items.AddItem = function(src, item, amount) return true end
+    Core.Items.AddItem = function(src, item, amount, metadata, extraMetadata) return true end
     Core.Items.RemoveItem = function(src, item, amount) return true end
     Core.Items.HasItem = function(src, item) return false end
+    Core.Items.GetItemCount = function(src, item) return 0 end
     Core.Items.GetInventory = function(src) return {} end
     Core.Items.RegisterUsableItem = function(item, cb)
         print(("^3[DjonStNix-Bridge Standalone]^7 RegisterUsableItem '%s' (No framework)"):format(item))

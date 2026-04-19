@@ -65,3 +65,11 @@ For scripts that only need to log a transaction without using the new helpers:
 -- Legacy method (internally redirects to ChargeBankAccount if 'bank')
 exports['DjonStNix-Bridge']:LogBankTransaction(src, amount, 'bank', "Legacy Reason", receiptData)
 ```
+
+---
+
+## Compatibility Notes
+
+- The bridge normalizes framework behavior across QBCore, QBox, ESX, and standalone fallback mode.
+- Inventory wrappers include add, remove, count, item checks, and backend-aware image path resolution.
+- ESX notification and group/admin fallback handling are exposed through the bridge so ecosystem resources can stay framework-agnostic.
